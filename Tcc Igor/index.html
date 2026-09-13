@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solar Monitor | Sistema Inteligente de Monitoramento Fotovoltaico</title>
+    <meta
+      name="description"
+      content="Dashboard acadêmico de monitoramento fotovoltaico em simulação com dados em tempo real."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-icon">☀</div>
+          <div class="brand-text">
+            <div class="eyebrow">LABORATÓRIO DE ENERGIA RENOVÁVEL</div>
+            <h1>SOLAR MONITOR</h1>
+            <p>Sistema Inteligente de Monitoramento Fotovoltaico</p>
+          </div>
+        </div>
+
+        <div class="header-tools">
+          <div class="online-pill">
+            <span class="online-dot"></span>
+            <span>SISTEMA ONLINE</span>
+          </div>
+
+          <div class="mode-box">
+            <span>Modo:</span>
+            <strong id="modeLabel">SIMULAÇÃO</strong>
+          </div>
+
+          <div class="clock-box">
+            <span id="currentDateTime">--</span>
+          </div>
+        </div>
+      </header>
+
+      <nav class="section-nav" aria-label="Navegação do dashboard">
+        <a href="#overview" class="nav-link active">Visão Geral</a>
+        <a href="#monitoring" class="nav-link">Tempo Real</a>
+        <a href="#simulation" class="nav-link">Simulação</a>
+        <a href="#maintenance" class="nav-link">Manutenção</a>
+        <a href="#events" class="nav-link">Eventos</a>
+      </nav>
+
+      <main class="dashboard">
+        <section id="overview" class="metrics-grid">
+          <article class="metric-card">
+            <div class="metric-header">
+              <span class="metric-icon sun">☀</span>
+              <span class="metric-label">IRRADIÂNCIA</span>
+            </div>
+            <div id="irradianciaValue" class="metric-value">812 W/m²</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-header">
+              <span class="metric-icon bolt">⚡</span>
+              <span class="metric-label">TENSÃO</span>
+            </div>
+            <div id="tensaoValue" class="metric-value">20.12 V</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-header">
+              <span class="metric-icon plug">🔌</span>
+              <span class="metric-label">CORRENTE</span>
+            </div>
+            <div id="correnteValue" class="metric-value">4.72 A</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-header">
+              <span class="metric-icon battery">🔋</span>
+              <span class="metric-label">POTÊNCIA</span>
+            </div>
+            <div id="potenciaValue" class="metric-value">94.9 W</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-header">
+              <span class="metric-icon temp">🌡</span>
+              <span class="metric-label">TEMPERATURA</span>
+            </div>
+            <div id="temperaturaValue" class="metric-value">46.3 °C</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-header">
+              <span class="metric-icon performance">📊</span>
+              <span class="metric-label">DESEMPENHO</span>
+            </div>
+            <div id="desempenhoValue" class="metric-value">82%</div>
+          </article>
+        </section>
+
+        <section class="panel status-panel">
+          <div class="panel-header">
+            <h2>STATUS DO SISTEMA</h2>
+          </div>
+          <div id="systemStatus" class="system-status status-normal">
+            🟢 SISTEMA OPERANDO NORMALMENTE
+          </div>
+        </section>
+
+        <section id="monitoring" class="panel charts-panel">
+          <div class="panel-header">
+            <h2>MONITORAMENTO EM TEMPO REAL</h2>
+          </div>
+
+          <div class="chart-grid">
+            <div class="chart-card">
+              <div class="chart-label">Potência × Tempo</div>
+              <canvas id="powerChart"></canvas>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-label">Corrente × Tempo</div>
+              <canvas id="currentChart"></canvas>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-label">Temperatura × Tempo</div>
+              <canvas id="temperatureChart"></canvas>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-label">Irradiância × Tempo</div>
+              <canvas id="irradianceChart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section id="simulation" class="panel simulation-panel">
+          <div class="panel-header">
+            <h2>MODO DE SIMULAÇÃO</h2>
+          </div>
+          <p class="panel-description">
+            Escolha um cenário para testar o comportamento do sistema.
+          </p>
+
+          <div class="scenario-buttons" id="scenarioButtons">
+            <button class="scenario-btn active" data-scenario="clean" type="button">
+              🟢 PAINEL LIMPO
+            </button>
+            <button class="scenario-btn" data-scenario="light" type="button">
+              🟡 SUJEIRA LEVE
+            </button>
+            <button class="scenario-btn" data-scenario="moderate" type="button">
+              🟠 SUJEIRA MODERADA
+            </button>
+            <button class="scenario-btn" data-scenario="intense" type="button">
+              🔴 SUJEIRA INTENSA
+            </button>
+            <button class="scenario-btn" data-scenario="shadow" type="button">
+              🌑 SOMBREAMENTO
+            </button>
+          </div>
+        </section>
+
+        <section id="maintenance" class="panel cleaning-panel">
+          <div class="panel-header">
+            <h2>SISTEMA DE LIMPEZA</h2>
+          </div>
+
+          <div id="cleaningStatus" class="cleaning-status">Aguardando análise</div>
+
+          <div class="progress-shell" aria-label="Progresso da limpeza">
+            <div id="cleaningProgress" class="progress-bar"></div>
+          </div>
+
+          <button id="cleaningBtn" class="cleaning-btn" type="button">
+            🧹 AUTORIZAR LIMPEZA
+          </button>
+        </section>
+
+        <section id="events" class="panel events-panel">
+          <div class="panel-header">
+            <h2>HISTÓRICO DE EVENTOS</h2>
+          </div>
+
+          <ul id="eventLog" class="event-log"></ul>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
