@@ -1,23 +1,26 @@
 // ============================================================
-// SOLAR MONITOR - MONITORAMENTO FOTOVOLTAICO
-// TEMPERATURA REAL PELO ESP32 + DEMAIS DADOS EM SIMULAÇÃO
+// SOLAR MONITOR
+// MODO SIMULAÇÃO + MODO REAL
 // ============================================================
 
 const state = {
+
+  // Modo inicial
+  mode: "simulation",
+
   scenario: "clean",
 
   irradiance: 812,
   voltage: 20.12,
   current: 4.72,
   power: 94.9,
-
-  // Começa em 0 até receber o primeiro valor do ESP32
-  temperature: 0,
-
+  temperature: 46.3,
   performance: 82,
 
   cleaning: false,
   cleaningProgress: 0,
+
+  esp32Connected: false,
 
   history: {
     labels: [],
@@ -30,20 +33,19 @@ const state = {
 
 
 // ============================================================
-// CONEXÃO COM O ESP32
+// ESP32
 // ============================================================
 
-// IP que apareceu no Monitor Serial do ESP32
-const ESP32_URL = "http://192.168.1.175/dados";
-
-let esp32Connected = false;
+const ESP32_URL =
+  "http://192.168.1.175/dados";
 
 
 // ============================================================
-// CONFIGURAÇÃO DOS CENÁRIOS
+// CENÁRIOS DE SIMULAÇÃO
 // ============================================================
 
 const scenarios = {
+
   clean: {
     name: "PAINEL LIMPO",
     irradiance: 850,
@@ -97,7 +99,7 @@ const scenarios = {
 
 
 // ============================================================
-// ELEMENTOS DO DOM
+// ELEMENTOS DO HTML
 // ============================================================
 
 const irradianciaValue =
@@ -139,15 +141,16 @@ const currentDateTime =
 const scenarioButtons =
   document.querySelectorAll(".scenario-btn");
 
-const modeLabel =
-  document.getElementById("modeLabel");
+const modeSelect =
+  document.getElementById("modeSelect");
 
 
 // ============================================================
-// GRÁFICOS
+// CONFIGURAÇÃO DOS GRÁFICOS
 // ============================================================
 
 const chartConfig = {
+
   responsive: true,
 
   maintainAspectRatio: false,
@@ -163,6 +166,7 @@ const chartConfig = {
   },
 
   scales: {
+
     x: {
       ticks: {
         maxTicksLimit: 8
@@ -176,16 +180,18 @@ const chartConfig = {
 };
 
 
-// ------------------------------------------------------------
+// ============================================================
 // GRÁFICO DE POTÊNCIA
-// ------------------------------------------------------------
+// ============================================================
 
 const powerChart = new Chart(
   document.getElementById("powerChart"),
   {
+
     type: "line",
 
     data: {
+
       labels: [],
 
       datasets: [
@@ -204,16 +210,18 @@ const powerChart = new Chart(
 );
 
 
-// ------------------------------------------------------------
+// ============================================================
 // GRÁFICO DE CORRENTE
-// ------------------------------------------------------------
+// ============================================================
 
 const currentChart = new Chart(
   document.getElementById("currentChart"),
   {
+
     type: "line",
 
     data: {
+
       labels: [],
 
       datasets: [
@@ -232,16 +240,18 @@ const currentChart = new Chart(
 );
 
 
-// ------------------------------------------------------------
+// ============================================================
 // GRÁFICO DE TEMPERATURA
-// ------------------------------------------------------------
+// ============================================================
 
 const temperatureChart = new Chart(
   document.getElementById("temperatureChart"),
   {
+
     type: "line",
 
     data: {
+
       labels: [],
 
       datasets: [
@@ -260,16 +270,18 @@ const temperatureChart = new Chart(
 );
 
 
-// ------------------------------------------------------------
+// ============================================================
 // GRÁFICO DE IRRADIÂNCIA
-// ------------------------------------------------------------
+// ============================================================
 
 const irradianceChart = new Chart(
   document.getElementById("irradianceChart"),
   {
+
     type: "line",
 
     data: {
+
       labels: [],
 
       datasets: [
@@ -292,15 +304,30 @@ const irradianceChart = new Chart(
 // UTILIDADES
 // ============================================================
 
-function randomVariation(value, percentage = 0.03) {
-  const variation = value * percentage;
+function randomVariation(
+  value,
+  percentage = 0.03
+) {
+
+  const variation =
+    value * percentage;
 
   return value +
-    (Math.random() * variation * 2 - variation);
+    (
+      Math.random() *
+      variation *
+      2 -
+      variation
+    );
 }
 
 
-function clamp(value, min, max) {
+function clamp(
+  value,
+  min,
+  max
+) {
+
   return Math.min(
     Math.max(value, min),
     max
@@ -309,7 +336,9 @@ function clamp(value, min, max) {
 
 
 function formatTime() {
-  const now = new Date();
+
+  const now =
+    new Date();
 
   return now.toLocaleTimeString(
     "pt-BR",
@@ -323,7 +352,9 @@ function formatTime() {
 
 
 function updateClock() {
-  const now = new Date();
+
+  const now =
+    new Date();
 
   currentDateTime.textContent =
     now.toLocaleString(
@@ -341,25 +372,107 @@ function updateClock() {
 
 
 // ============================================================
-// ATUALIZAÇÃO DOS VALORES DOS CARDS
+// EVENTOS
+// ============================================================
+
+function addEvent(
+  message,
+  type = "normal"
+) {
+
+  const li =
+    document.createElement("li");
+
+  li.className =
+    `event-item event-${type}`;
+
+  li.innerHTML = `
+    <span class="event-time">
+      ${formatTime()}
+    </span>
+
+    <span class="event-message">
+      ${message}
+    </span>
+  `;
+
+  eventLog.prepend(li);
+
+  while (
+    eventLog.children.length > 15
+  ) {
+
+    eventLog.removeChild(
+      eventLog.lastChild
+    );
+  }
+}
+
+
+// ============================================================
+// ATUALIZAÇÃO DOS CARDS
 // ============================================================
 
 function updateMetrics() {
 
+  // ==========================================================
+  // MODO SIMULAÇÃO
+  // ==========================================================
+
+  if (
+    state.mode === "simulation"
+  ) {
+
+    irradianciaValue.textContent =
+      `${Math.round(
+        state.irradiance
+      )} W/m²`;
+
+    tensaoValue.textContent =
+      `${state.voltage.toFixed(2)} V`;
+
+    correnteValue.textContent =
+      `${state.current.toFixed(2)} A`;
+
+    potenciaValue.textContent =
+      `${state.power.toFixed(1)} W`;
+
+    temperaturaValue.textContent =
+      `${state.temperature.toFixed(1)} °C`;
+
+    desempenhoValue.textContent =
+      `${Math.round(
+        state.performance
+      )}%`;
+
+    return;
+  }
+
+
+  // ==========================================================
+  // MODO REAL
+  // ==========================================================
+
+  // Ainda não temos LDR integrado
   irradianciaValue.textContent =
-    `${Math.round(state.irradiance)} W/m²`;
+    "-- W/m²";
 
+  // Ainda não temos INA226 lendo o painel
   tensaoValue.textContent =
-    `${state.voltage.toFixed(2)} V`;
+    "-- V";
 
+  // Ainda não temos ACS712 integrado
   correnteValue.textContent =
-    `${state.current.toFixed(2)} A`;
+    "-- A";
 
+  // Será calculada depois
   potenciaValue.textContent =
-    `${state.power.toFixed(1)} W`;
+    "-- W";
 
-  // Só mostra temperatura se já recebemos dado do ESP32
-  if (esp32Connected) {
+  // Temperatura JÁ É REAL
+  if (
+    state.esp32Connected
+  ) {
 
     temperaturaValue.textContent =
       `${state.temperature.toFixed(1)} °C`;
@@ -370,29 +483,44 @@ function updateMetrics() {
       "-- °C";
   }
 
+  // Ainda não calculado
   desempenhoValue.textContent =
-    `${Math.round(state.performance)}%`;
+    "--";
 }
 
 
 // ============================================================
-// SIMULAÇÃO DOS DEMAIS DADOS
+// SIMULAÇÃO DOS DADOS
 // ============================================================
 
 function simulateData() {
 
-  if (state.cleaning) {
+  // Se estiver no modo REAL,
+  // não fazemos simulação.
+
+  if (
+    state.mode !== "simulation"
+  ) {
+
     return;
   }
 
+
+  if (
+    state.cleaning
+  ) {
+
+    return;
+  }
+
+
   const scenario =
-    scenarios[state.scenario];
+    scenarios[
+      state.scenario
+    ];
 
 
-  // ----------------------------------------------------------
-  // IRRADIÂNCIA SIMULADA
-  // ----------------------------------------------------------
-
+  // Irradiância
   state.irradiance =
     randomVariation(
       scenario.irradiance,
@@ -400,10 +528,7 @@ function simulateData() {
     );
 
 
-  // ----------------------------------------------------------
-  // TENSÃO SIMULADA
-  // ----------------------------------------------------------
-
+  // Tensão
   state.voltage =
     randomVariation(
       scenario.voltage,
@@ -411,10 +536,7 @@ function simulateData() {
     );
 
 
-  // ----------------------------------------------------------
-  // CORRENTE SIMULADA
-  // ----------------------------------------------------------
-
+  // Corrente
   state.current =
     randomVariation(
       scenario.current,
@@ -422,51 +544,44 @@ function simulateData() {
     );
 
 
-  // ----------------------------------------------------------
-  // TEMPERATURA
-  // ----------------------------------------------------------
-
-  // NÃO SIMULAMOS MAIS A TEMPERATURA.
-  //
-  // O valor de state.temperature
-  // vem diretamente do ESP32 / DS18B20.
+  // Temperatura
+  state.temperature =
+    randomVariation(
+      scenario.temperature,
+      0.025
+    );
 
 
-  // ----------------------------------------------------------
-  // POTÊNCIA
-  // ----------------------------------------------------------
+  // Influência simplificada
+  // da temperatura
 
-  let temperatureFactor = 1;
+  const temperatureFactor =
+    1 -
+    Math.max(
+      0,
+      state.temperature - 25
+    ) *
+    0.002;
 
-  if (esp32Connected) {
 
-    temperatureFactor =
-      1 -
-      Math.max(
-        0,
-        state.temperature - 25
-      ) * 0.002;
-  }
-
+  // Potência
   state.power =
     state.voltage *
     state.current *
     temperatureFactor;
 
 
-  // ----------------------------------------------------------
-  // DESEMPENHO SIMULADO
-  // ----------------------------------------------------------
-
+  // Desempenho
   state.performance =
     scenario.performance +
-    (Math.random() * 4 - 2);
+    (
+      Math.random() *
+      4 -
+      2
+    );
 
 
-  // ----------------------------------------------------------
-  // LIMITES
-  // ----------------------------------------------------------
-
+  // Limites
   state.irradiance =
     clamp(
       state.irradiance,
@@ -486,6 +601,13 @@ function simulateData() {
       state.current,
       0,
       8
+    );
+
+  state.temperature =
+    clamp(
+      state.temperature,
+      20,
+      80
     );
 
   state.performance =
@@ -512,10 +634,21 @@ function simulateData() {
 
 
 // ============================================================
-// TEMPERATURA REAL - ESP32 + DS18B20
+// LEITURA REAL DO ESP32
 // ============================================================
 
-async function readRealTemperature() {
+async function readRealData() {
+
+  // Só tenta acessar o ESP32
+  // quando estiver no modo REAL.
+
+  if (
+    state.mode !== "real"
+  ) {
+
+    return;
+  }
+
 
   try {
 
@@ -529,7 +662,9 @@ async function readRealTemperature() {
       );
 
 
-    if (!response.ok) {
+    if (
+      !response.ok
+    ) {
 
       throw new Error(
         `HTTP ${response.status}`
@@ -541,60 +676,70 @@ async function readRealTemperature() {
       await response.json();
 
 
+    // ========================================================
+    // TEMPERATURA REAL
+    // ========================================================
+
     const temperature =
-      Number(data.temperatura);
+      Number(
+        data.temperatura
+      );
 
 
-    // Verificação para impedir
-    // valores absurdos ou erro -127 °C
     if (
-      !Number.isFinite(temperature) ||
+      !Number.isFinite(
+        temperature
+      ) ||
       temperature <= -100 ||
       temperature > 125
     ) {
 
       throw new Error(
-        "Temperatura inválida recebida do ESP32"
+        "Temperatura inválida"
       );
     }
 
 
-    // Salva a temperatura real
     state.temperature =
       temperature;
 
 
-    // Se acabou de conectar
-    if (!esp32Connected) {
+    // ========================================================
+    // PRIMEIRA CONEXÃO
+    // ========================================================
 
-      esp32Connected = true;
+    if (
+      !state.esp32Connected
+    ) {
 
-      modeLabel.textContent =
-        "HÍBRIDO";
+      state.esp32Connected =
+        true;
 
       addEvent(
-        "ESP32 conectado. Temperatura real do DS18B20 recebida.",
+        "ESP32 conectado. DS18B20 enviando temperatura real.",
         "normal"
       );
     }
 
 
-    // Atualiza imediatamente
-    // o card de temperatura
-    temperaturaValue.textContent =
-      `${state.temperature.toFixed(1)} °C`;
+    updateMetrics();
 
+    updateSystemStatus();
+
+    updateCharts();
   }
 
   catch (error) {
 
     console.error(
-      "Erro ao receber temperatura do ESP32:",
+      "Erro ao acessar ESP32:",
       error
     );
 
 
-    if (esp32Connected) {
+    if (
+      state.esp32Connected
+    ) {
 
       addEvent(
         "Conexão com o ESP32 perdida.",
@@ -603,15 +748,13 @@ async function readRealTemperature() {
     }
 
 
-    esp32Connected = false;
+    state.esp32Connected =
+      false;
 
 
-    modeLabel.textContent =
-      "ESP32 DESCONECTADO";
+    updateMetrics();
 
-
-    temperaturaValue.textContent =
-      "-- °C";
+    updateSystemStatus();
   }
 }
 
@@ -622,7 +765,44 @@ async function readRealTemperature() {
 
 function updateSystemStatus() {
 
-  if (state.cleaning) {
+  // ==========================================================
+  // MODO REAL
+  // ==========================================================
+
+  if (
+    state.mode === "real"
+  ) {
+
+    if (
+      state.esp32Connected
+    ) {
+
+      systemStatus.className =
+        "system-status status-normal";
+
+      systemStatus.textContent =
+        "🟢 MODO REAL — ESP32 CONECTADO";
+
+    } else {
+
+      systemStatus.className =
+        "system-status status-danger";
+
+      systemStatus.textContent =
+        "🔴 MODO REAL — ESP32 DESCONECTADO";
+    }
+
+    return;
+  }
+
+
+  // ==========================================================
+  // MODO SIMULAÇÃO
+  // ==========================================================
+
+  if (
+    state.cleaning
+  ) {
 
     systemStatus.className =
       "system-status status-normal";
@@ -634,7 +814,9 @@ function updateSystemStatus() {
   }
 
 
-  if (state.scenario === "clean") {
+  if (
+    state.scenario === "clean"
+  ) {
 
     systemStatus.className =
       "system-status status-normal";
@@ -646,7 +828,9 @@ function updateSystemStatus() {
   }
 
 
-  if (state.scenario === "light") {
+  if (
+    state.scenario === "light"
+  ) {
 
     systemStatus.className =
       "system-status status-warning";
@@ -658,7 +842,9 @@ function updateSystemStatus() {
   }
 
 
-  if (state.scenario === "moderate") {
+  if (
+    state.scenario === "moderate"
+  ) {
 
     systemStatus.className =
       "system-status status-warning";
@@ -670,7 +856,9 @@ function updateSystemStatus() {
   }
 
 
-  if (state.scenario === "intense") {
+  if (
+    state.scenario === "intense"
+  ) {
 
     systemStatus.className =
       "system-status status-danger";
@@ -682,15 +870,15 @@ function updateSystemStatus() {
   }
 
 
-  if (state.scenario === "shadow") {
+  if (
+    state.scenario === "shadow"
+  ) {
 
     systemStatus.className =
       "system-status status-danger";
 
     systemStatus.textContent =
       "🌑 SOMBREAMENTO DETECTADO";
-
-    return;
   }
 }
 
@@ -705,30 +893,30 @@ function updateCharts() {
     formatTime();
 
 
-  // ----------------------------------------------------------
-  // SALVA DADOS NO HISTÓRICO
-  // ----------------------------------------------------------
-
   state.history.labels.push(
     time
   );
 
 
-  state.history.power.push(
-    Number(
-      state.power.toFixed(1)
-    )
-  );
+  // ==========================================================
+  // SIMULAÇÃO
+  // ==========================================================
 
+  if (
+    state.mode === "simulation"
+  ) {
 
-  state.history.current.push(
-    Number(
-      state.current.toFixed(2)
-    )
-  );
+    state.history.power.push(
+      Number(
+        state.power.toFixed(1)
+      )
+    );
 
-
-  if (esp32Connected) {
+    state.history.current.push(
+      Number(
+        state.current.toFixed(2)
+      )
+    );
 
     state.history.temperature.push(
       Number(
@@ -736,25 +924,57 @@ function updateCharts() {
       )
     );
 
-  } else {
-
-    state.history.temperature.push(
-      null
+    state.history.irradiance.push(
+      Math.round(
+        state.irradiance
+      )
     );
   }
 
 
-  state.history.irradiance.push(
-    Math.round(
-      state.irradiance
-    )
-  );
+  // ==========================================================
+  // REAL
+  // ==========================================================
+
+  else {
+
+    // Ainda não temos dados reais
+    // destas grandezas
+
+    state.history.power.push(
+      null
+    );
+
+    state.history.current.push(
+      null
+    );
+
+    state.history.irradiance.push(
+      null
+    );
 
 
-  // ----------------------------------------------------------
-  // MANTÉM SOMENTE OS ÚLTIMOS 30 PONTOS
-  // ----------------------------------------------------------
+    // Temperatura real
+    if (
+      state.esp32Connected
+    ) {
 
+      state.history.temperature.push(
+        Number(
+          state.temperature.toFixed(1)
+        )
+      );
+
+    } else {
+
+      state.history.temperature.push(
+        null
+      );
+    }
+  }
+
+
+  // Últimos 30 pontos
   if (
     state.history.labels.length > 30
   ) {
@@ -771,31 +991,25 @@ function updateCharts() {
   }
 
 
-  // ----------------------------------------------------------
-  // POTÊNCIA
-  // ----------------------------------------------------------
-
   powerChart.data.labels =
     state.history.labels;
 
-  powerChart.data.datasets[0].data =
-    state.history.power;
+  powerChart
+    .data
+    .datasets[0]
+    .data =
+      state.history.power;
 
-
-  // ----------------------------------------------------------
-  // CORRENTE
-  // ----------------------------------------------------------
 
   currentChart.data.labels =
     state.history.labels;
 
-  currentChart.data.datasets[0].data =
-    state.history.current;
+  currentChart
+    .data
+    .datasets[0]
+    .data =
+      state.history.current;
 
-
-  // ----------------------------------------------------------
-  // TEMPERATURA
-  // ----------------------------------------------------------
 
   temperatureChart.data.labels =
     state.history.labels;
@@ -807,10 +1021,6 @@ function updateCharts() {
       state.history.temperature;
 
 
-  // ----------------------------------------------------------
-  // IRRADIÂNCIA
-  // ----------------------------------------------------------
-
   irradianceChart.data.labels =
     state.history.labels;
 
@@ -820,10 +1030,6 @@ function updateCharts() {
     .data =
       state.history.irradiance;
 
-
-  // ----------------------------------------------------------
-  // ATUALIZA GRÁFICOS
-  // ----------------------------------------------------------
 
   powerChart.update();
 
@@ -836,64 +1042,232 @@ function updateCharts() {
 
 
 // ============================================================
-// EVENTOS
+// LIMPA HISTÓRICO DOS GRÁFICOS
 // ============================================================
 
-function addEvent(
-  message,
-  type = "normal"
-) {
+function clearCharts() {
 
-  const li =
-    document.createElement("li");
+  state.history.labels = [];
 
+  state.history.power = [];
 
-  li.className =
-    `event-item event-${type}`;
+  state.history.current = [];
 
+  state.history.temperature = [];
 
-  li.innerHTML = `
-    <span class="event-time">
-      ${formatTime()}
-    </span>
-
-    <span class="event-message">
-      ${message}
-    </span>
-  `;
+  state.history.irradiance = [];
 
 
-  eventLog.prepend(
-    li
-  );
+  powerChart.data.labels = [];
+
+  powerChart.data.datasets[0].data = [];
 
 
-  // Limita histórico
-  // aos últimos 15 eventos
+  currentChart.data.labels = [];
 
-  while (
-    eventLog.children.length > 15
-  ) {
+  currentChart.data.datasets[0].data = [];
 
-    eventLog.removeChild(
-      eventLog.lastChild
-    );
-  }
+
+  temperatureChart.data.labels = [];
+
+  temperatureChart.data.datasets[0].data = [];
+
+
+  irradianceChart.data.labels = [];
+
+  irradianceChart.data.datasets[0].data = [];
+
+
+  powerChart.update();
+
+  currentChart.update();
+
+  temperatureChart.update();
+
+  irradianceChart.update();
 }
 
 
 // ============================================================
-// SELEÇÃO DOS CENÁRIOS
+// TROCA DE MODO
+// ============================================================
+
+modeSelect.addEventListener(
+  "change",
+  () => {
+
+    const selectedMode =
+      modeSelect.value;
+
+
+    // ========================================================
+    // SIMULAÇÃO
+    // ========================================================
+
+    if (
+      selectedMode === "simulation"
+    ) {
+
+      state.mode =
+        "simulation";
+
+
+      state.esp32Connected =
+        false;
+
+
+      scenarioButtons.forEach(
+        button => {
+
+          button.disabled =
+            false;
+        }
+      );
+
+
+      cleaningBtn.disabled =
+        false;
+
+
+      cleaningBtn.textContent =
+        "🧹 AUTORIZAR LIMPEZA";
+
+
+      cleaningStatus.textContent =
+        "Aguardando análise";
+
+
+      clearCharts();
+
+
+      // Volta aos valores
+      // do cenário atual
+
+      const scenario =
+        scenarios[
+          state.scenario
+        ];
+
+
+      state.irradiance =
+        scenario.irradiance;
+
+      state.voltage =
+        scenario.voltage;
+
+      state.current =
+        scenario.current;
+
+      state.temperature =
+        scenario.temperature;
+
+      state.performance =
+        scenario.performance;
+
+      state.power =
+        state.voltage *
+        state.current;
+
+
+      updateMetrics();
+
+      updateSystemStatus();
+
+
+      addEvent(
+        "Modo SIMULAÇÃO ativado.",
+        "normal"
+      );
+
+
+      return;
+    }
+
+
+    // ========================================================
+    // REAL
+    // ========================================================
+
+    state.mode =
+      "real";
+
+
+    state.esp32Connected =
+      false;
+
+
+    // Cenários não devem alterar
+    // dados físicos reais
+
+    scenarioButtons.forEach(
+      button => {
+
+        button.disabled =
+          true;
+      }
+    );
+
+
+    // Limpeza física ainda
+    // não foi integrada
+
+    cleaningBtn.disabled =
+      true;
+
+
+    cleaningBtn.textContent =
+      "🧹 AGUARDANDO INTEGRAÇÃO";
+
+
+    cleaningStatus.textContent =
+      "Modo real: limpeza ainda não integrada";
+
+
+    clearCharts();
+
+
+    updateMetrics();
+
+    updateSystemStatus();
+
+
+    addEvent(
+      "Modo REAL ativado. Buscando dados do ESP32.",
+      "normal"
+    );
+
+
+    // Tenta conectar imediatamente
+    readRealData();
+  }
+);
+
+
+// ============================================================
+// SELEÇÃO DE CENÁRIO
 // ============================================================
 
 scenarioButtons.forEach(
-  (button) => {
+  button => {
 
     button.addEventListener(
       "click",
       () => {
 
-        if (state.cleaning) {
+        // Cenários são exclusivos
+        // do modo simulação
+
+        if (
+          state.mode !== "simulation"
+        ) {
+
+          return;
+        }
+
+
+        if (
+          state.cleaning
+        ) {
 
           addEvent(
             "Não é possível alterar o cenário durante a limpeza.",
@@ -912,12 +1286,8 @@ scenarioButtons.forEach(
           scenarioName;
 
 
-        // ----------------------------------------------------
-        // ATUALIZA BOTÃO ATIVO
-        // ----------------------------------------------------
-
         scenarioButtons.forEach(
-          (btn) => {
+          btn => {
 
             btn.classList.remove(
               "active"
@@ -932,12 +1302,10 @@ scenarioButtons.forEach(
 
 
         const scenario =
-          scenarios[scenarioName];
+          scenarios[
+            scenarioName
+          ];
 
-
-        // ----------------------------------------------------
-        // ALTERA OS DADOS SIMULADOS
-        // ----------------------------------------------------
 
         state.irradiance =
           scenario.irradiance;
@@ -948,16 +1316,11 @@ scenarioButtons.forEach(
         state.current =
           scenario.current;
 
-
-        // NÃO altera a temperatura.
-        //
-        // Ela continua vindo
-        // fisicamente do DS18B20.
-
+        state.temperature =
+          scenario.temperature;
 
         state.performance =
           scenario.performance;
-
 
         state.power =
           state.voltage *
@@ -983,19 +1346,32 @@ scenarioButtons.forEach(
 
 
 // ============================================================
-// SISTEMA DE LIMPEZA
+// BOTÃO DE LIMPEZA
 // ============================================================
 
 cleaningBtn.addEventListener(
   "click",
   () => {
 
-    if (state.cleaning) {
+    // A limpeza física
+    // ainda não está integrada.
+
+    if (
+      state.mode !== "simulation"
+    ) {
+
       return;
     }
 
 
-    // Se o painel já estiver limpo
+    if (
+      state.cleaning
+    ) {
+
+      return;
+    }
+
+
     if (
       state.scenario === "clean"
     ) {
@@ -1020,14 +1396,13 @@ cleaningBtn.addEventListener(
 
 
 // ============================================================
-// INÍCIO DA LIMPEZA
+// INICIA LIMPEZA SIMULADA
 // ============================================================
 
 function startCleaning() {
 
   state.cleaning =
     true;
-
 
   state.cleaningProgress =
     0;
@@ -1103,7 +1478,7 @@ function startCleaning() {
 
 
 // ============================================================
-// FINAL DA LIMPEZA
+// FINALIZA LIMPEZA SIMULADA
 // ============================================================
 
 function finishCleaning() {
@@ -1122,15 +1497,12 @@ function finishCleaning() {
   );
 
 
-  // Retorna para
-  // o cenário painel limpo
-
   state.scenario =
     "clean";
 
 
   scenarioButtons.forEach(
-    (btn) => {
+    btn => {
 
       btn.classList.remove(
         "active"
@@ -1150,31 +1522,20 @@ function finishCleaning() {
   );
 
 
-  // ----------------------------------------------------------
-  // RESTAURA OS DADOS SIMULADOS
-  // ----------------------------------------------------------
-
   state.irradiance =
     scenarios.clean.irradiance;
-
 
   state.voltage =
     scenarios.clean.voltage;
 
-
   state.current =
     scenarios.clean.current;
 
-
-  // NÃO altera a temperatura.
-  //
-  // A temperatura continua
-  // vindo do DS18B20.
-
+  state.temperature =
+    scenarios.clean.temperature;
 
   state.performance =
     scenarios.clean.performance;
-
 
   state.power =
     state.voltage *
@@ -1204,7 +1565,6 @@ function finishCleaning() {
       cleaningStatus.textContent =
         "Sistema pronto para nova análise";
 
-
       cleaningProgress.style.width =
         "0%";
 
@@ -1226,14 +1586,14 @@ const navLinks =
 
 
 navLinks.forEach(
-  (link) => {
+  link => {
 
     link.addEventListener(
       "click",
       () => {
 
         navLinks.forEach(
-          (item) => {
+          item => {
 
             item.classList.remove(
               "active"
@@ -1252,7 +1612,7 @@ navLinks.forEach(
 
 
 // ============================================================
-// DETECTA AUTOMATICAMENTE A SEÇÃO VISÍVEL
+// DETECÇÃO DA SEÇÃO VISÍVEL
 // ============================================================
 
 const sections =
@@ -1263,17 +1623,17 @@ const sections =
 
 const observer =
   new IntersectionObserver(
-    (entries) => {
+    entries => {
 
       entries.forEach(
-        (entry) => {
+        entry => {
 
           if (
             entry.isIntersecting
           ) {
 
             navLinks.forEach(
-              (link) => {
+              link => {
 
                 link.classList.remove(
                   "active"
@@ -1303,7 +1663,7 @@ const observer =
 
 
 sections.forEach(
-  (section) => {
+  section => {
 
     observer.observe(
       section
@@ -1325,12 +1685,8 @@ function initialize() {
   updateSystemStatus();
 
 
-  modeLabel.textContent =
-    "CONECTANDO ESP32...";
-
-
   addEvent(
-    "Sistema iniciado: temperatura real + demais grandezas em simulação.",
+    "Sistema iniciado em modo de SIMULAÇÃO.",
     "normal"
   );
 
@@ -1343,41 +1699,28 @@ function initialize() {
 
 
 // ============================================================
-// INICIA O DASHBOARD
+// INICIA
 // ============================================================
 
 initialize();
 
 
-// Atualiza relógio
-// a cada 1 segundo
-
+// Relógio
 setInterval(
   updateClock,
   1000
 );
 
 
-// Atualiza os dados
-// que ainda estão simulados
-// a cada 1,5 segundo
-
+// Simulação
 setInterval(
   simulateData,
   1500
 );
 
 
-// Faz a primeira leitura
-// real imediatamente
-
-readRealTemperature();
-
-
-// Lê novamente a temperatura
-// do ESP32 a cada 1,5 segundo
-
+// ESP32
 setInterval(
-  readRealTemperature,
+  readRealData,
   1500
 );
